@@ -4,91 +4,58 @@ import { StatusBar } from 'expo-status-bar';
 import { useFonts, PressStart2P_400Regular } from '@expo-google-fonts/press-start-2p';
 
 import { ThemeProvider, useTheme } from './context/ThemeContext';
+import { ScheduleProvider } from './context/ScheduleContext';
+import { HabitProvider } from './context/HabitContext';
 import { ColorScheme, PALETTE_LABELS, PIXEL_FONT } from './constants/theme';
-import { Clock } from './components/Clock';
+
+import { Clock }         from './components/Clock';
 import { PomodoroTimer } from './components/PomodoroTimer';
-import { Itinerary } from './components/Itinerary';
+import { Itinerary }     from './components/Itinerary';
+import { HabitTracker }  from './components/HabitTracker';
+import { UpNext }        from './components/UpNext';
+import { DayProgress }   from './components/DayProgress';
+import { MoonPhase }     from './components/MoonPhase';
 import { Ghost, Cat, Mushroom } from './components/PixelSprites';
 
-// ─── sub-components ──────────────────────────────────────────────────────────
+// ─── shared sub-components ────────────────────────────────────────────────────
 
 const PixelDivider: React.FC<{ color: string }> = ({ color }) => (
-  <View style={dividerStyles.row}>
+  <View style={{ flexDirection: 'row', height: 4, overflow: 'hidden' }}>
     {Array.from({ length: 20 }).map((_, i) => (
-      <View key={i} style={[dividerStyles.block, { backgroundColor: color, opacity: i % 2 === 0 ? 1 : 0.35 }]} />
+      <View key={i} style={{ flex: 1, marginHorizontal: 1, backgroundColor: color, opacity: i % 2 === 0 ? 1 : 0.35 }} />
     ))}
   </View>
 );
-const dividerStyles = StyleSheet.create({
-  row: { flexDirection: 'row', height: 4, overflow: 'hidden' },
-  block: { flex: 1, marginHorizontal: 1 },
-});
+
+// ─── styles ───────────────────────────────────────────────────────────────────
 
 const createStyles = (c: ColorScheme) =>
   StyleSheet.create({
-    safe: { flex: 1, backgroundColor: c.bg },
-    loading: { flex: 1, backgroundColor: '#1a0a2e' },
-    scroll: { flex: 1 },
-    content: { paddingHorizontal: 16, paddingVertical: 24, gap: 16 },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginBottom: 4,
-    },
+    safe:    { flex: 1, backgroundColor: c.bg },
+    scroll:  { flex: 1 },
+    content: { paddingHorizontal: 16, paddingVertical: 24, gap: 14 },
+    // header
+    header:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     headerCenter: { alignItems: 'center' },
     appTitle: {
-      fontFamily: PIXEL_FONT,
-      fontSize: 22,
-      color: c.pink,
-      letterSpacing: 4,
-      textShadowColor: c.purple,
-      textShadowOffset: { width: 3, height: 3 },
-      textShadowRadius: 0,
+      fontFamily: PIXEL_FONT, fontSize: 22, color: c.pink, letterSpacing: 4,
+      textShadowColor: c.purple, textShadowOffset: { width: 3, height: 3 }, textShadowRadius: 0,
     },
-    appTitleSub: {
-      fontFamily: PIXEL_FONT,
-      fontSize: 10,
-      color: c.purpleLight,
-      letterSpacing: 6,
-      marginTop: 4,
-    },
-    spritesRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-around',
-      alignItems: 'flex-end',
-      paddingVertical: 6,
-    },
-    card: { backgroundColor: c.bgCard, borderWidth: 3, padding: 16 },
-    sectionLabel: {
-      fontFamily: PIXEL_FONT,
-      fontSize: 7,
-      color: c.textMuted,
-      letterSpacing: 3,
-      textAlign: 'center',
-      marginBottom: 4,
-    },
-    paletteRow: { alignItems: 'center', marginTop: 4 },
-    paletteBtn: {
-      borderWidth: 2,
-      borderColor: c.border,
-      backgroundColor: c.bgCard,
-      paddingHorizontal: 14,
-      paddingVertical: 8,
-    },
-    paletteBtnText: {
-      fontFamily: PIXEL_FONT,
-      fontSize: 7,
-      color: c.gold,
-      letterSpacing: 1,
-    },
-    footer: {
-      flexDirection: 'row',
-      justifyContent: 'space-around',
-      alignItems: 'center',
-      paddingTop: 8,
-      paddingBottom: 8,
-    },
+    appSub: { fontFamily: PIXEL_FONT, fontSize: 10, color: c.purpleLight, letterSpacing: 6, marginTop: 4 },
+    spritesRow: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'flex-end', paddingVertical: 4 },
+    // palette toggle
+    paletteRow: { alignItems: 'center' },
+    paletteBtn: { borderWidth: 2, borderColor: c.border, backgroundColor: c.bgCard, paddingHorizontal: 14, paddingVertical: 7 },
+    paletteBtnText: { fontFamily: PIXEL_FONT, fontSize: 7, color: c.gold, letterSpacing: 1 },
+    // info row (moon + progress)
+    infoCard: { backgroundColor: c.bgCard, borderWidth: 3, borderColor: c.borderAccent, padding: 12, gap: 10 },
+    infoRow:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+    infoRight: { flex: 1 },
+    // section cards
+    card:         { backgroundColor: c.bgCard, borderWidth: 3, padding: 16 },
+    sectionLabel: { fontFamily: PIXEL_FONT, fontSize: 7, color: c.textMuted, letterSpacing: 3, textAlign: 'center', marginBottom: 4 },
+    // footer
+    footer: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', paddingVertical: 8 },
     footerText: { fontFamily: PIXEL_FONT, fontSize: 8, color: c.purplePale },
   });
 
@@ -103,12 +70,12 @@ const Inner: React.FC = () => {
       <StatusBar style="light" />
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
 
-        {/* Header */}
+        {/* ── Header ── */}
         <View style={styles.header}>
           <Ghost pixelSize={5} />
           <View style={styles.headerCenter}>
             <Text style={styles.appTitle}>BOO</Text>
-            <Text style={styles.appTitleSub}>DAYS</Text>
+            <Text style={styles.appSub}>DAYS</Text>
           </View>
           <Cat pixelSize={5} />
         </View>
@@ -129,9 +96,24 @@ const Inner: React.FC = () => {
           </TouchableOpacity>
         </View>
 
+        {/* ── Up Next banner ── */}
+        <UpNext />
+
         <PixelDivider color={colors.border} />
 
-        {/* Clock */}
+        {/* ── Moon phase + Day progress ── */}
+        <View style={styles.infoCard}>
+          <View style={styles.infoRow}>
+            <MoonPhase />
+            <View style={styles.infoRight}>
+              <DayProgress />
+            </View>
+          </View>
+        </View>
+
+        <PixelDivider color={colors.border} />
+
+        {/* ── Clock ── */}
         <View style={[styles.card, { borderColor: colors.purpleLight }]}>
           <Text style={styles.sectionLabel}>* TIME *</Text>
           <Clock />
@@ -139,7 +121,7 @@ const Inner: React.FC = () => {
 
         <PixelDivider color={colors.border} />
 
-        {/* Pomodoro */}
+        {/* ── Pomodoro ── */}
         <View style={[styles.card, { borderColor: colors.pink }]}>
           <Text style={styles.sectionLabel}>* POMODORO *</Text>
           <PomodoroTimer />
@@ -147,9 +129,16 @@ const Inner: React.FC = () => {
 
         <PixelDivider color={colors.border} />
 
-        {/* Itinerary */}
+        {/* ── Schedule ── */}
         <View style={[styles.card, { borderColor: colors.teal }]}>
           <Itinerary />
+        </View>
+
+        <PixelDivider color={colors.border} />
+
+        {/* ── Habit tracker ── */}
+        <View style={[styles.card, { borderColor: colors.gold }]}>
+          <HabitTracker />
         </View>
 
         {/* Footer */}
@@ -168,14 +157,15 @@ const Inner: React.FC = () => {
 
 export default function App() {
   const [fontsLoaded] = useFonts({ PressStart2P_400Regular });
-
-  if (!fontsLoaded) {
-    return <View style={{ flex: 1, backgroundColor: '#1a0a2e' }} />;
-  }
+  if (!fontsLoaded) return <View style={{ flex: 1, backgroundColor: '#1a0a2e' }} />;
 
   return (
     <ThemeProvider>
-      <Inner />
+      <ScheduleProvider>
+        <HabitProvider>
+          <Inner />
+        </HabitProvider>
+      </ScheduleProvider>
     </ThemeProvider>
   );
 }
